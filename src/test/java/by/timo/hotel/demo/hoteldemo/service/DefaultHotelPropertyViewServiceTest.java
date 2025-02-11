@@ -9,7 +9,6 @@ import by.timo.hotel.demo.hoteldemo.exception.AmenityNotFoundException;
 import by.timo.hotel.demo.hoteldemo.exception.HotelNotFoundException;
 import by.timo.hotel.demo.hoteldemo.mapper.HotelMapper;
 import by.timo.hotel.demo.hoteldemo.mapper.HotelShortInfoMapper;
-import by.timo.hotel.demo.hoteldemo.model.Amenity;
 import by.timo.hotel.demo.hoteldemo.repository.specification.HotelSpecifications;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +25,6 @@ import by.timo.hotel.demo.hoteldemo.dto.HotelShortInfoDto;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,7 +54,6 @@ public class DefaultHotelPropertyViewServiceTest {
     private HotelDto hotelDto;
     private HotelShortInfoDto hotelShortInfoDto;
     private List<Hotel> hotels;
-    private List<HotelShortInfoDto> hotelShortInfoDtoList;
 
     @BeforeEach
     public void setUp() {
@@ -72,7 +69,6 @@ public class DefaultHotelPropertyViewServiceTest {
         hotelShortInfoDto = new HotelShortInfoDto();
         hotelShortInfoDto.setId(1L);
         hotelShortInfoDto.setName("Test Hotel");
-        hotelShortInfoDtoList = Collections.singletonList(hotelShortInfoDto);
     }
 
     @Test
@@ -204,40 +200,39 @@ public class DefaultHotelPropertyViewServiceTest {
     @Test
     @Transactional
     void addHotelAmenities_shouldAddAmenitiesToHotel() {
-        Amenity amenity = new Amenity("Free WiFi");
-        List<String> amenityDtos = Collections.singletonList("Free WiFi");
+        List<String> amenityNames = List.of("Free WiFi");
 
-        hotel.setAmenities(new HashSet<>(Collections.singleton(amenity)));
+        when(hotelPropertyViewRepository.countHotelById(1L)).thenReturn(1);
+        when(amenityRepository.countAmenitiesByNames(amenityNames)).thenReturn(1);
 
-        when(hotelPropertyViewRepository.findById(1L)).thenReturn(Optional.of(hotel));
-        when(amenityRepository.findByName("Free WiFi")).thenReturn(amenity);
-
-        List<String> result = service.addHotelAmenities(amenityDtos, 1L);
+        List<String> result = service.addHotelAmenities(amenityNames, 1L);
 
         assertFalse(result.isEmpty());
         assertEquals(1, result.size());
-        assertEquals("Free WiFi", result.get(0)); // Исправлено на "Free WiFi"
-        verify(hotelPropertyViewRepository, times(1)).findById(1L);
-        verify(amenityRepository, times(1)).findByName("Free WiFi");
+        assertEquals("Free WiFi", result.get(0));
+        verify(hotelPropertyViewRepository, times(1)).countHotelById(1L);
+        verify(amenityRepository, times(1)).countAmenitiesByNames(amenityNames);
     }
 
     @Test
     @Transactional
     void addHotelAmenities_shouldThrowHotelNotFoundException() {
-        when(hotelPropertyViewRepository.findById(1L)).thenReturn(Optional.empty());
+        when(hotelPropertyViewRepository.countHotelById(3L)).thenReturn(0);
 
-        assertThrows(HotelNotFoundException.class, () -> service.addHotelAmenities(Collections.singletonList("Free WiFi"), 1L));
-        verify(hotelPropertyViewRepository, times(1)).findById(1L);
+        assertThrows(HotelNotFoundException.class, () -> service.addHotelAmenities(Collections.singletonList("Free WiFi"), 3L));
+        verify(hotelPropertyViewRepository, times(1)).countHotelById(3L);
     }
 
     @Test
     @Transactional
     void addHotelAmenities_shouldThrowAmenityNotFoundException() {
-        when(hotelPropertyViewRepository.findById(1L)).thenReturn(Optional.of(hotel));
-        when(amenityRepository.findByName("Free WiFi")).thenReturn(null);
+        List<String> amenityNames = List.of("Free Coffee");
 
-        assertThrows(AmenityNotFoundException.class, () -> service.addHotelAmenities(Collections.singletonList("Free WiFi"), 1L));
-        verify(hotelPropertyViewRepository, times(1)).findById(1L);
-        verify(amenityRepository, times(1)).findByName("Free WiFi");
+        when(hotelPropertyViewRepository.countHotelById(1L)).thenReturn(1);
+        when(amenityRepository.countAmenitiesByNames(amenityNames)).thenReturn(0);
+
+        assertThrows(AmenityNotFoundException.class, () -> service.addHotelAmenities(Collections.singletonList("Free Coffee"), 1L));
+        verify(hotelPropertyViewRepository, times(1)).countHotelById(1L);
+        verify(amenityRepository, times(1)).countAmenitiesByNames(amenityNames);
     }
 }

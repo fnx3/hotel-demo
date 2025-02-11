@@ -22,6 +22,7 @@ public class HotelPropertyViewCustomRepositoryImpl implements HotelPropertyViewR
     @PersistenceContext
     private EntityManager entityManager;
 
+    @Override
     public Map<String, Integer> getHistogramByColumn(String column) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Object[]> query = cb.createQuery(Object[].class);
